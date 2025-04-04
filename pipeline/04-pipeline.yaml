@@ -6,10 +6,15 @@ metadata:
 spec:
   description: A pipeline that clones a git repository, build image, update mainfest and commits changes.
   params:
-    - name: git-repo-url
+    - name: git-repo-application
       type: string
       description: The git repo URL to clone from.
       default: "https://github.com/marcelobruckner/hello-app"
+
+    - name: git-repo-gitops
+      type: string
+      description: The git repo gitpos to update manifests.
+      default: "https://github.com/marcelobruckner/hello-gitops-k8s"
 
     - name: image
       type: string
@@ -30,8 +35,19 @@ spec:
       description: |
         This workspace contains the cloned repo files, so they can be read by the
         next task.
+    - name: gitops-shared-data
+      description: |
+        This workspace contains the cloned repo files, so they can be read by the
+        next task for gitops.
 
   tasks:
+    # - name: first-cleanup-workspace
+    #   taskRef:
+    #     name: cleanup-workspace
+    #   workspaces:
+    #     - name: source
+    #       workspace: shared-data
+
     # Clones the git repository into the shared workspace.
     - name: fetch-source
       taskRef:
@@ -41,35 +57,35 @@ spec:
           workspace: shared-data
       params:
         - name: url
-          value: "$(params.git-repo-url)"
+          value: "$(params.git-repo-application)"
 
     # Builds the image using Buildah.
-    # - name: build-image
-    #   runAfter:
-    #     - fetch-source
-    #   taskRef:
-    #     name: buildah-customized
-    #   workspaces:
-    #     - name: source
-    #       workspace: shared-data
-    #   params:
-    #     - name: repo-url
-    #       value: "$(params.git-repo-url)"
-    #     - name: IMAGE
-    #       value: "$(params.image)"
-
-    # Updates the image in the kustomization.yaml file.
-    - name: update-commit-mainfest
+    - name: build-image
       runAfter:
         - fetch-source
       taskRef:
-        name: update-commit-mainfest
+        name: buildah-customized
       workspaces:
         - name: source
           workspace: shared-data
       params:
-        - name: GIT_REPO
-          value: $(params.git-repo-url)
+        - name: repo-url
+          value: "$(params.git-repo-application)"
+        - name: IMAGE
+          value: "$(params.image)"
+
+    # Updates the image in the kustomization.yaml file.
+    - name: update-commit-mainfest
+      runAfter:
+        - build-image
+      taskRef:
+        name: update-commit-mainfest
+      workspaces:
+        - name: source-gitops
+          workspace: gitops-shared-data
+      params:
+        - name: GIT_REPO_GITOPS
+          value: $(params.git-repo-gitops)
         - name: GIT_BRANCH
           value: "main"
         - name: GIT_USER_NAME
@@ -79,10 +95,26 @@ spec:
         - name: IMAGE
           value: "$(params.image)"
         - name: DIGEST
-          # value: "$(tasks.build-image.results.DIGEST)"
-          value: "123456"
+          value: "$(tasks.build-image.results.DIGEST)"
+          # value: "123456"
         - name: KUSTOMIZE_PATH
-          value: "k8s/"
+          value: "gitops"
+
+    # - name: cleanup-workspace
+    #   runAfter:
+    #     - update-commit-mainfest
+    #   taskRef:
+    #     name: cleanup-workspace
+    #   params:
+    #     - name: WORKSPACE_NAMES
+    #       value:
+    #         - source
+    #         - source-gitops
+    #   workspaces:
+    #     - name: source
+    #       workspace: shared-data
+    #     - name: source-gitops
+    #       workspace: gitops-shared-data
 
     # update manifest
     # - name: update-manifest

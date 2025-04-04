@@ -11,4 +11,7 @@ spec:
     - name: shared-data
       persistentVolumeClaim:
         claimName: hello-pvc
+    - name: gitops-shared-data
+      persistentVolumeClaim:
+        claimName: hello-gitops-pvc
   serviceAccountName: hello-sa # Nome do ServiceAccount
