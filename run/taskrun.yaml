@@ -1,0 +1,29 @@
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  generateName: update-commit-mainfest-run
+  namespace: hello-dev
+spec:
+  taskRef:
+    name: update-commit-mainfest
+  params:
+    # - name: GIT_REPO
+    #   value: "https://github.com/yourusername/your-repo.git"
+    # - name: GIT_BRANCH
+    #   value: "main"
+    - name: GIT_USER_NAME
+      value: "Openshift Bot"
+    - name: GIT_USER_EMAIL
+      value: "your-email@example.com"
+    - name: DIGEST
+      value: "sha256:abcd123"
+    - name: IMAGE
+      value: "docker.io/marcelobruckner/hello"
+    - name: KUSTOMIZE_PATH
+      value: "."
+
+  workspaces:
+    - name: source
+      persistentVolumeClaim:
+        claimName: hello-pvc
+  serviceAccountName: hello-sa # Nome do ServiceAccount

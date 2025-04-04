@@ -1,0 +1,84 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: update-commit-mainfest
+  namespace: hello-dev # Certifique-se de usar o namespace correto
+  labels:
+    app.kubernetes.io/version: "1.0"
+  annotations:
+    tekton.dev/categories: Deployment
+    tekton.dev/tags: kustomize, kubernetes
+    tekton.dev/displayName: update-commit-manifest
+spec:
+  description: >
+    Atualiza manifestos Kubernetes com Kustomize, alterando a imagem para um novo SHA ou tag.
+    Comita e envia para o GitHub as alterações feitas nos manifestos Kubernetes.
+
+  params:
+    - name: GIT_REPO
+      description: "URL do repositório Git"
+      default: "https://github.com/marcelobruckner/hello-app"
+    - name: GIT_BRANCH
+      description: "Branch para onde enviar as alterações"
+      default: "main"
+    - name: GIT_USER_NAME
+      description: "Nome do usuário do Git"
+      default: "Openshift Bot"
+    - name: GIT_USER_EMAIL
+      description: "E-mail do usuário do Git"
+    - name: DIGEST
+      description: "SHA da imagem a ser atualizada no Kustomize (ex: sha256:abcd123)"
+    - name: IMAGE
+      description: "aqui entra o registry. ex: docker.io/marcelobruckner/hello"
+    - name: KUSTOMIZE_PATH
+      description: "Caminho onde está o kustomization.yaml"
+      default: "."
+
+  workspaces:
+    - name: source
+      description: "Workspace contendo os arquivos do Kustomize"
+
+  steps:
+    - name: git-clone
+      image: alpine/git:latest
+      workingDir: $(workspaces.source.path)/gitops
+      script: |
+        #!/bin/sh
+        set -e
+
+        echo "🔄 Garantindo permissões no workspace..."
+        echo "$(pwd)"
+        git clone $(params.GIT_REPO) -b $(params.GIT_BRANCH) --single-branch --depth 1 .
+        ls -la
+
+    - name: update-manifest
+      image: registry.k8s.io/kustomize/kustomize:v5.0.0
+      workingDir: $(workspaces.source.path)/gitops
+      script: |
+        #!/bin/sh
+        set -e
+
+        echo "🔄 Exibindo o conteúdo de kustomization.yaml:"
+        ls -la
+
+    - name: git-commit-manifest
+      image: alpine/git:latest
+      workingDir: $(workspaces.source.path)/gitops
+      script: |
+        #!/bin/sh
+        set -e
+
+        echo "🔄 Configurando Git..."
+        ls -la
+
+    - name: cleanup-workspace
+      image: alpine:latest
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        echo "🧹 Limpando diretórios desnecessários..."
+        rm -rf $(workspaces.source.path)/*
+        rm -rf $(workspaces.source.path)/.[!.]*
+        echo "✅ Limpeza concluída!"
+
+        ls -la

@@ -1,0 +1,117 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: hello-pipeline
+  namespace: hello-dev # Certifique-se de usar o namespace correto
+spec:
+  description: A pipeline that clones a git repository, build image, update mainfest and commits changes.
+  params:
+    - name: git-repo-url
+      type: string
+      description: The git repo URL to clone from.
+      default: "https://github.com/marcelobruckner/hello-app"
+
+    - name: image
+      type: string
+      description: The image name to build.
+      default: "marcelobruckner/hello"
+
+    - name: dockerfile
+      type: string
+      description: The path to the Dockerfile.
+      default: "./Dockerfile"
+
+    - name: context
+      type: string
+      description: The path to the build context.
+      default: "."
+  workspaces:
+    - name: shared-data
+      description: |
+        This workspace contains the cloned repo files, so they can be read by the
+        next task.
+
+  tasks:
+    # Clones the git repository into the shared workspace.
+    - name: fetch-source
+      taskRef:
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: shared-data
+      params:
+        - name: url
+          value: "$(params.git-repo-url)"
+
+    # Builds the image using Buildah.
+    # - name: build-image
+    #   runAfter:
+    #     - fetch-source
+    #   taskRef:
+    #     name: buildah-customized
+    #   workspaces:
+    #     - name: source
+    #       workspace: shared-data
+    #   params:
+    #     - name: repo-url
+    #       value: "$(params.git-repo-url)"
+    #     - name: IMAGE
+    #       value: "$(params.image)"
+
+    # Updates the image in the kustomization.yaml file.
+    - name: update-commit-mainfest
+      runAfter:
+        - fetch-source
+      taskRef:
+        name: update-commit-mainfest
+      workspaces:
+        - name: source
+          workspace: shared-data
+      params:
+        - name: GIT_REPO
+          value: $(params.git-repo-url)
+        - name: GIT_BRANCH
+          value: "main"
+        - name: GIT_USER_NAME
+          value: "Pipeline Bot"
+        - name: GIT_USER_EMAIL
+          value: "pipeline@tekton.com"
+        - name: IMAGE
+          value: "$(params.image)"
+        - name: DIGEST
+          # value: "$(tasks.build-image.results.DIGEST)"
+          value: "123456"
+        - name: KUSTOMIZE_PATH
+          value: "k8s/"
+
+    # update manifest
+    # - name: update-manifest
+    #   runAfter:
+    #     - build-image
+    #   taskRef:
+    #     name: kustomize-update-manifest
+    #   workspaces:
+    #     - name: source
+    #       workspace: shared-data
+    #   params:
+    #     - name: IMAGE
+    #       value: "$(params.image)"
+    #     - name: DIGEST
+    #       value: "$(tasks.build-image.results.DIGEST)"
+    #     - name: KUSTOMIZE_PATH
+    #       value: "k8s/"
+
+    # Commits and pushes the changes to the git repository.
+    # - name: git-commit-manifest
+    #   runAfter:
+    #     - update-manifest
+    #   taskRef:
+    #     name: git-commit-manifest
+    #   workspaces:
+    #     - name: source
+    #       workspace: shared-data
+    #   params:
+    #     - name: GIT_REPO
+    #       value: $(params.git-repo-url)
+    #     - name: GIT_BRANCH
+    #       value: "main"

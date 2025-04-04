@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hello-pvc
+  namespace: hello-dev # Certifique-se de usar o namespace correto
+spec:
+  accessModes:
+    - ReadWriteOnce # Pode ser ReadWriteMany ou ReadOnlyMany dependendo do storage
+  resources:
+    requests:
+      storage: 1Gi # Define o tamanho do volume
+  #storageClassName: standard (para o k8s)

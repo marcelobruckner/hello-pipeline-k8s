@@ -1,0 +1,68 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: git-commit-manifest
+  namespace: hello-dev # Certifique-se de usar o namespace correto
+spec:
+  description: >
+    Comita e envia para o GitHub as alterações feitas nos manifestos Kubernetes.
+
+  params:
+    - name: GIT_REPO
+      description: "URL do repositório Git"
+    - name: GIT_BRANCH
+      description: "Branch para onde enviar as alterações"
+      default: "main"
+    - name: GIT_USER_NAME
+      description: "Nome do usuário do Git"
+      default: "Openshift Bot"
+    - name: GIT_USER_EMAIL
+      description: "E-mail do usuário do Git"
+      default: "pipeline@openshift.com"
+
+  workspaces:
+    - name: source
+      description: "Workspace contendo o código-fonte"
+
+  steps:
+    - name: commit-and-push
+      image: alpine/git:latest
+      workingDir: $(workspaces.source.path)
+      securityContext:
+        runAsUser: 1000
+        runAsNonRoot: true
+      env:
+        - name: HOME
+          value: "/workspace"
+      script: |
+        #!/bin/sh
+        set -e
+        echo
+        cp -r /tekton/creds/.docker /workspace/
+        cp -r /tekton/creds/.gitconfig /workspace/
+        cp -r /tekton/creds/.git-credentials /workspace/
+
+        git config --global --add safe.directory /workspace/source
+
+        echo "🔄 Configurando Git..."
+        git config --global user.name "$(params.GIT_USER_NAME)"
+        git config --global user.email "$(params.GIT_USER_EMAIL)"
+
+        echo "📂 Diretório atual: $(pwd)"
+        git status
+
+        # Verificar se a branch $(params.GIT_BRANCH) existe
+        if git show-ref --verify refs/heads/$(params.GIT_BRANCH) >/dev/null 2>&1; then
+          git checkout $(params.GIT_BRANCH)
+        else
+          git checkout -b $(params.GIT_BRANCH)
+        fi
+
+        echo "🔄 Adicionando mudanças..."
+        git add .
+
+        echo "🔄 Criando commit..."
+        git commit -m "change image tag by Openshift Pipelines"
+
+        echo "🚀 Enviando mudanças para o repositório $(params.GIT_REPO) na branch $(params.GIT_BRANCH)..."
+        git push origin $(params.GIT_BRANCH)

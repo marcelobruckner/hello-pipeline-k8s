@@ -1,0 +1,54 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: kustomize-update-manifest
+  namespace: hello-dev # Certifique-se de usar o namespace correto
+  labels:
+    app.kubernetes.io/version: "1.0"
+  annotations:
+    tekton.dev/categories: Deployment
+    tekton.dev/tags: kustomize, kubernetes
+    tekton.dev/displayName: kustomize-update
+spec:
+  description: >
+    Atualiza manifestos Kubernetes com Kustomize, alterando a imagem para um novo SHA ou tag.
+
+  params:
+    - name: DIGEST
+      description: "SHA da imagem a ser atualizada no Kustomize (ex: sha256:abcd123)"
+    - name: IMAGE
+      description: "aqui entra o registry. ex: docker.io/marcelobruckner/hello"
+    - name: KUSTOMIZE_PATH
+      description: "Caminho onde está o kustomization.yaml"
+      default: "."
+
+  workspaces:
+    - name: source
+      description: "Workspace contendo os arquivos do Kustomize"
+
+  steps:
+    - name: update-kustomize
+      image: registry.k8s.io/kustomize/kustomize:v5.0.0
+      workingDir: $(workspaces.source.path)/$(params.KUSTOMIZE_PATH)
+      securityContext:
+        runAsUser: 1000
+        runAsNonRoot: true
+      env:
+        - name: DOCKER_CONFIG
+          value: "/tekton/home/.docker"
+      script: |
+        #!/bin/sh
+        set -e
+
+        echo "📂 Diretório atual antes do cd: $(pwd)"
+
+        echo "🔄 Exibindo o conteúdo de kustomization.yaml:"
+        cat kustomization.yaml  # Verifica se o arquivo realmente está no local correto
+
+        echo "🔄 Atualizando imagem no Kustomize..."
+        kustomize edit set image $(params.IMAGE)=$(params.IMAGE):$(params.DIGEST)
+
+        echo "✅ Kustomization atualizado com sucesso!"
+
+        echo "🔄 Exibindo o conteúdo de kustomization.yaml após atualização:"
+        cat kustomization.yaml

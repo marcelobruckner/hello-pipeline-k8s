@@ -1,0 +1,14 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: hello-pipeline-run-
+  namespace: hello-dev # Certifique-se de usar o namespace correto
+spec:
+  pipelineRef:
+    name: hello-pipeline
+
+  workspaces:
+    - name: shared-data
+      persistentVolumeClaim:
+        claimName: hello-pvc
+  serviceAccountName: hello-sa # Nome do ServiceAccount
