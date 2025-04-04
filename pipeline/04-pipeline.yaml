@@ -41,14 +41,7 @@ spec:
         next task for gitops.
 
   tasks:
-    # - name: first-cleanup-workspace
-    #   taskRef:
-    #     name: cleanup-workspace
-    #   workspaces:
-    #     - name: source
-    #       workspace: shared-data
-
-    # Clones the git repository into the shared workspace.
+    # Fetch the source code from the git repository.
     - name: fetch-source
       taskRef:
         name: git-clone
@@ -96,54 +89,5 @@ spec:
           value: "$(params.image)"
         - name: DIGEST
           value: "$(tasks.build-image.results.DIGEST)"
-          # value: "123456"
         - name: KUSTOMIZE_PATH
           value: "gitops"
-
-    # - name: cleanup-workspace
-    #   runAfter:
-    #     - update-commit-mainfest
-    #   taskRef:
-    #     name: cleanup-workspace
-    #   params:
-    #     - name: WORKSPACE_NAMES
-    #       value:
-    #         - source
-    #         - source-gitops
-    #   workspaces:
-    #     - name: source
-    #       workspace: shared-data
-    #     - name: source-gitops
-    #       workspace: gitops-shared-data
-
-    # update manifest
-    # - name: update-manifest
-    #   runAfter:
-    #     - build-image
-    #   taskRef:
-    #     name: kustomize-update-manifest
-    #   workspaces:
-    #     - name: source
-    #       workspace: shared-data
-    #   params:
-    #     - name: IMAGE
-    #       value: "$(params.image)"
-    #     - name: DIGEST
-    #       value: "$(tasks.build-image.results.DIGEST)"
-    #     - name: KUSTOMIZE_PATH
-    #       value: "k8s/"
-
-    # Commits and pushes the changes to the git repository.
-    # - name: git-commit-manifest
-    #   runAfter:
-    #     - update-manifest
-    #   taskRef:
-    #     name: git-commit-manifest
-    #   workspaces:
-    #     - name: source
-    #       workspace: shared-data
-    #   params:
-    #     - name: GIT_REPO
-    #       value: $(params.git-repo-url)
-    #     - name: GIT_BRANCH
-    #       value: "main"

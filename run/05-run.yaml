@@ -15,3 +15,7 @@ spec:
       persistentVolumeClaim:
         claimName: hello-gitops-pvc
   serviceAccountName: hello-sa # Nome do ServiceAccount
+
+  podTemplate:
+    securityContext:
+      fsGroup: 65532
