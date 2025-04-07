@@ -20,15 +20,26 @@ kubectl apply --filename https://storage.googleapis.com/tekton-releases/triggers
 echo "🚀 Instalando Tekton Dashboard..."
 kubectl apply --filename https://storage.googleapis.com/tekton-releases/dashboard/latest/release.yaml
 
+
+echo "🚀 Instalando Tekton Interceptors..."
+kubectl apply -f https://storage.googleapis.com/tekton-releases/triggers/latest/interceptors.yaml
+
 # Cria namespace do ArgoCD
 echo "🚀 Criando namespace argocd..."
 kubectl create namespace argocd || true
 
-# Instala ArgoCD via Helm
+# Instala o ArgoCD
 echo "🚀 Instalando ArgoCD..."
-helm repo add argo https://argoproj.github.io/argo-helm
-helm repo update
-helm install argocd argo/argo-cd --namespace argocd --set server.service.type=LoadBalancer
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+
+
+
+# Instala ArgoCD via Helm
+# echo "🚀 Instalando ArgoCD..."
+# helm repo add argo https://argoproj.github.io/argo-helm
+# helm repo update
+# helm install argocd argo/argo-cd --namespace argocd --set server.service.type=LoadBalancer
 
 # Exibe status da instalação
 echo "✅ Instalação concluída!"

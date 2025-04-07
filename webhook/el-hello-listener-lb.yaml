@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: el-hello-listener-lb
+  namespace: hello-dev
+spec:
+  type: LoadBalancer
+  selector:
+    eventlistener: hello-listener
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
